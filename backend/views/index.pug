@@ -1,0 +1,64 @@
+doctype html
+html
+    head
+        title RAG Chat
+        link(rel="stylesheet", href="/styles.css")
+    body.bg-gray-100.text-gray-800.p-4
+        h1.text-xl.font-bold.mb-4 Chat IA simple
+
+        div#chatbox.bg-white.shadow-md.rounded-md.p-4
+            div#messages.h-60.overflow-y-scroll.mb-2
+            input#userInput(
+                type="text"
+                placeholder="Pose ta question..."
+                class="border p-2 w-full"
+                autocomplete="off"
+            )
+
+        script.
+            const input = document.getElementById('userInput');
+            const messages = document.getElementById('messages');
+
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    const msg = input.value.trim();
+                    if (!msg) return;
+                    input.disabled = true;
+                    messages.innerHTML += `<p><b>Moi:</b> ${msg}</p>`;
+
+                    try {
+                        const res = await fetch('/ask', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ question: msg })
+                        });
+
+                        const data = await res.json();
+                        console.log('Réponse IA:', data);
+
+                        let html = `<p><b>IA:</b> ${data.answer}</p>`;
+
+                        // ✅ Afficher les sources uniquement si elles sont complètes
+                        const hasValidSources = Array.isArray(data.sources) &&
+                            data.sources.some(src => src.title && src.author && src.date);
+
+                        if (hasValidSources) {
+                            html += '<ul class="text-sm text-gray-600 mt-1"><b>📚 Sources disponibles :</b>';
+                            data.sources.forEach(src => {
+                                if (src.title && src.author && src.date) {
+                                    html += `<li>• <i>${src.title}</i> – ${src.author}, ${src.date}</li>`;
+                                }
+                            });
+                            html += '</ul>';
+                        }
+
+                        messages.innerHTML += html;
+                    } catch (err) {
+                        messages.innerHTML += `<p class="text-red-600">Erreur de communication avec le serveur.</p>`;
+                    } finally {
+                        input.disabled = false;
+                        input.value = '';
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                }
+            });
