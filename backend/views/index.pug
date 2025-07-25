@@ -38,7 +38,7 @@ html
 
                         let html = `<p><b>IA:</b> ${data.answer}</p>`;
 
-                        // ✅ Afficher les sources uniquement si elles sont complètes
+                        //  Afficher les sources uniquement si elles sont complètes
                         const hasValidSources = Array.isArray(data.sources) &&
                             data.sources.some(src => src.title && src.author && src.date);
 
