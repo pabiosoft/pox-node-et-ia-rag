@@ -1,18 +1,56 @@
-# RAG Chat – Simple Document Search Chatbot
+#  RAG Chat Bot
 
-A simple Node.js chatbot using OpenAI and Qdrant for Retrieval-Augmented Generation (RAG).
+Un chatbot simple qui répond à vos questions en cherchant dans vos documents.
 
-## Features
+![RAG Chat Bot Demo](./backend/public/images/demo-screenshot.jpeg)
 
-- Ask questions in natural language
-- Uses OpenAI API for embeddings and chat completions
-- Retrieves relevant context from a Qdrant vector database
-- Displays sources for each answer
 
-## Stack
+##  Démarrage rapide
 
-- Node.js (Express)
-- OpenAI API
-- Qdrant (vector DB)
-- Pug (template engine)
+### 1. Cloner le projet
+```bash
+git clone https://github.com/votre-username/poc-node-et-ia-rag.git
+cd poc-node-et-ia-rag
+```
+
+### 2. Configuration
+```bash
+cd backend
+cp .env.example .env
+# Éditer .env et ajouter votre clé OpenAI
+```
+
+### 3. Lancer l'application
+```bash
+docker compose up --build
+```
+
+### 4. Indexer les documents
+```bash
+cd backend
+docker-compose exec nodeapp npm run index
+```
+
+### 5. Utiliser l'application
+- **Chat** : http://localhost:3000
+- **Qdrant Dashboard** : http://localhost:6333/dashboard
+
+##  Ajouter des documents au corpus
+
+1. Ajoutez vos fichiers `.json` dans `backend/corpus/`
+2. Relancez l'indexer :
+```bash
+docker-compose exec nodeapp npm run index
+```
+
+##  Stack technique
+
+- Node.js + Express
+- OpenAI API (GPT + Embeddings)
+- Qdrant (base vectorielle)
+- Docker
+
+##  Licence
+
+MIT - Voir [LICENSE](LICENSE)
 

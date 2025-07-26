@@ -1,29 +1,34 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import { QdrantClient } from '@qdrant/js-client-rest';
-import OpenAI from 'openai';
 import { randomUUID } from 'crypto';
-
-dotenv.config();
+import { qdrant, openai, COLLECTION_NAME } from './config/database.js';
 
 // Config
 const CORPUS_DIR = './corpus';
-const COLLECTION_NAME = 'corpus';
-
-// Clients
-const qdrant = new QdrantClient({ url: process.env.QDRANT_URL || 'http://vectordb:6333' });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function ensureCollection() {
     try {
-        await qdrant.getCollection(COLLECTION_NAME);
-        console.log(`📚 Collection "${COLLECTION_NAME}" existe déjà`);
+        const collection = await qdrant.getCollection(COLLECTION_NAME);
+        console.log(`📚 Collection "${COLLECTION_NAME}" existe avec ${collection.points_count} points`);
+        
+        if (collection.points_count > 0) {
+            console.log(`🗑️ Suppression de ${collection.points_count} points existants...`);
+            
+            //  Supprimer tous les points sans recréer la collection
+            await qdrant.delete(COLLECTION_NAME, {
+                wait: true,
+                filter: {} // Filtre vide = supprimer tout
+            });
+            
+            console.log(`✅ Collection vidée avec succès`);
+        }
+        
     } catch (err) {
         console.log(`📚 Création de la collection "${COLLECTION_NAME}"...`);
         await qdrant.createCollection(COLLECTION_NAME, {
             vectors: {
-                size: 1536, // OpenAI text-embedding-ada-002
+                size: 1536,
                 distance: 'Cosine'
             }
         });
@@ -32,7 +37,7 @@ async function ensureCollection() {
 }
 
 async function indexCorpus() { 
-    // ✅ Créer la collection si elle n'existe pas
+    //  Créer la collection si elle n'existe pas
     await ensureCollection();
     
     console.log('📂 Lecture du corpus...');
@@ -62,7 +67,7 @@ async function indexCorpus() {
             });
 
             const vector = embedding.data[0].embedding;
-            const id = randomUUID(); // ✅ Retour à randomUUID qui marchait
+            const id = randomUUID(); 
 
             const point = {
                 id,
@@ -73,6 +78,7 @@ async function indexCorpus() {
                     author: doc.author || 'Anonyme',
                     date: doc.date || 'Non précisée',
                     category: doc.category || 'Divers',
+                    tags: doc.tags || [],
                     source: file
                 }
             };

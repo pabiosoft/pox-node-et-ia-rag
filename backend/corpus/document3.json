@@ -1,7 +1,7 @@
 {
-  "title": "Découverte de la ville de Pabios, Guinée",
-  "author": "Pabiosoft",
-  "date": "2025-07-12",
-  "category": "Géographie",
-  "text": "Pabios est une ville située dans la région de Moyenne-Guinée, au cœur du massif du Fouta-Djalon. Elle est la deuxième plus grande agglomération du pays après Conakry en termes d'importance économique et culturelle. Fondée au XVIIIe siècle par Karamoko Alpha, un érudit musulman, Pabios est devenue un centre historique majeur de l'islam et de l'enseignement coranique en Afrique de l'Ouest. La ville est également connue pour son artisanat local (tissage, cuir, poterie), son marché très actif, et ses paysages montagneux qui attirent les visiteurs. Elle joue un rôle central dans les échanges commerciaux de la région et abrite plusieurs infrastructures éducatives, administratives et sanitaires. Le climat y est tempéré et les précipitations abondantes, favorisant une agriculture vivrière dynamique. Pabios incarne aujourd'hui à la fois la tradition peule et l'ouverture à la modernité."
+  "title": "Qdrant et les bases de données vectorielles, c’est quoi ?",
+  "author": "isma",
+  "date": "2025-07-26",
+  "category": "Base de données",
+  "text": "Qdrant est une base de données dite 'vectorielle', pensée pour l’intelligence artificielle et la recherche de similarité. Au lieu de stocker seulement du texte ou des chiffres comme une base SQL classique, elle garde des vecteurs : des séries de nombres qui résument le sens d’un texte, d’une image ou d’un son. Quand tu veux retrouver un document qui ressemble à ta recherche, Qdrant compare ces vecteurs et te donne les plus proches. C’est ultra rapide, même avec des milliers ou des millions de données. Les bases vectorielles sont devenues essentielles pour tout ce qui touche à l’IA générative, le RAG ou la recherche intelligente, car elles permettent de retrouver instantanément les informations pertinentes, là où une base de données traditionnelle serait perdue."
 }
