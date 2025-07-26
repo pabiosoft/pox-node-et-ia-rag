@@ -9,7 +9,7 @@ Un chatbot simple qui répond à vos questions en cherchant dans vos documents.
 
 ### 1. Cloner le projet
 ```bash
-git clone https://github.com/votre-username/poc-node-et-ia-rag.git
+git clone hhttps://github.com/pabiosoft/pox-node-et-ia-rag.git
 cd poc-node-et-ia-rag
 ```
 
