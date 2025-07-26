@@ -14,11 +14,14 @@ const __dirname = path.dirname(__filename);
 if (!process.env.OPENAI_API_KEY) {
     console.error('❌ OPENAI_API_KEY non défini dans .env');
     process.exit(1);
-}
+} 
 
 const app = express();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const qdrant = new QdrantClient({ url: 'http://vectordb:6333' });
+const qdrantUrl = process.env.QDRANT_URL || 'http://localhost:6333';
+
+// const qdrant = new QdrantClient({ url: 'http://vectordb:6333' });
+const qdrant = new QdrantClient({ url: qdrantUrl });
 
 async function checkQdrant() {
     try {
@@ -65,58 +68,74 @@ app.post('/ask', async (req, res) => {
 
         const vector = embeddingRes.data[0].embedding;
 
+        // ✅ Seuil adaptatif selon la longueur de la question
+        const wordCount = question.split(' ').length;
+        let threshold = 0.85;
+        
+        if (wordCount <= 3) {
+            threshold = 0.75; // Questions courtes : seuil plus permissif
+        } else if (wordCount <= 6) {
+            threshold = 0.80; // Questions moyennes
+        }
+        // Questions longues gardent 0.85
+
+
         const search = await qdrant.search('corpus', {
             vector,
             limit: 3,
             with_payload: true,
+            score_threshold: threshold // ✅ Seuil de pertinence
         });
 
         if (search.length === 0) {
             return res.json({
-                answer: "Désolé, je n'ai pas d'informations sur ce sujet.",
-                sources: []
+                answer: "Désolé, je n'ai pas d'informations sur ce sujet dans ma base de connaissances.",
+                sources: [] // ✅ Pas de sources si aucun résultat pertinent
             });
         }
 
         const contextChunks = search.map(hit => hit.payload.text).join('\n---\n');
 
         const prompt = `
-            Tu es une IA spécialisée dans la recherche documentaire.
-            Voici les extraits disponibles :
-            
-            ${contextChunks}
-            
-            Réponds précisément à la question suivante :
-            "${question}"
-            `;
+Tu es un assistant IA spécialisé dans la recherche documentaire.
+
+Contexte disponible :
+${contextChunks}
+
+Question : "${question}"
+
+Instructions :
+- Réponds uniquement en te basant sur le contexte fourni
+- Si le contexte ne contient pas d'informations pertinentes, dis-le clairement
+- Sois précis et factuel
+- N'invente pas d'informations
+`;
 
         const gptRes = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [{ role: 'user', content: prompt }],
+            temperature: 0.3 // ✅ Réponses plus précises
         });
 
         const answer = gptRes.choices[0].message.content;
 
-        // Nettoyage des sources invalides ou incomplètes
-        const uniqueSources = [];
-        const seen = new Set();
+        // ✅ Ne montrer que les sources utilisées pour la réponse
+        const relevantSources = search.map(hit => ({
+            title: hit.payload.title,
+            author: hit.payload.author,
+            date: hit.payload.date,
+            score: Math.round(hit.score * 100) // Score de pertinence
+        })).filter(src => src.title && src.author && src.date);
 
-        for (const hit of search) {
-            const { title, author, date } = hit.payload;
-            if (title && author && date) {
-                const key = `${title}-${author}-${date}`;
-                if (!seen.has(key)) {
-                    uniqueSources.push({ title, author, date });
-                    seen.add(key);
-                }
-            }
-        }
-
-        res.json({ answer, sources: uniqueSources });
+        res.json({ 
+            answer, 
+            sources: relevantSources,
+            found: search.length > 0
+        });
 
     } catch (err) {
         console.error('❌ Erreur /ask:', err.message);
-        res.status(500).json({ error: 'Erreur serveur: problème avec l’API OpenAI' });
+        res.status(500).json({ error: 'Erreur serveur: problème avec l\'API OpenAI' });
     }
 });
 

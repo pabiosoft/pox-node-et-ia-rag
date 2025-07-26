@@ -15,9 +15,33 @@ const COLLECTION_NAME = 'corpus';
 const qdrant = new QdrantClient({ url: process.env.QDRANT_URL || 'http://vectordb:6333' });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-async function indexCorpus() {
+async function ensureCollection() {
+    try {
+        await qdrant.getCollection(COLLECTION_NAME);
+        console.log(`📚 Collection "${COLLECTION_NAME}" existe déjà`);
+    } catch (err) {
+        console.log(`📚 Création de la collection "${COLLECTION_NAME}"...`);
+        await qdrant.createCollection(COLLECTION_NAME, {
+            vectors: {
+                size: 1536, // OpenAI text-embedding-ada-002
+                distance: 'Cosine'
+            }
+        });
+        console.log(`✅ Collection "${COLLECTION_NAME}" créée`);
+    }
+}
+
+async function indexCorpus() { 
+    // ✅ Créer la collection si elle n'existe pas
+    await ensureCollection();
+    
     console.log('📂 Lecture du corpus...');
     const files = fs.readdirSync(CORPUS_DIR).filter(file => file.endsWith('.json'));
+    
+    if (files.length === 0) {
+        console.log('⚠️ Aucun fichier .json trouvé dans le dossier corpus/');
+        return;
+    }
 
     for (const file of files) {
         const filePath = path.join(CORPUS_DIR, file);
@@ -30,13 +54,15 @@ async function indexCorpus() {
         }
 
         try {
+            console.log(`🔄 Indexation de ${file}...`);
+            
             const embedding = await openai.embeddings.create({
                 model: 'text-embedding-ada-002',
                 input: doc.text,
             });
 
             const vector = embedding.data[0].embedding;
-            const id = randomUUID(); // ✅ compatible avec Qdrant
+            const id = randomUUID(); // ✅ Retour à randomUUID qui marchait
 
             const point = {
                 id,
@@ -51,12 +77,12 @@ async function indexCorpus() {
                 }
             };
 
-            const res = await qdrant.upsert(COLLECTION_NAME, {
+            await qdrant.upsert(COLLECTION_NAME, {
                 wait: true,
                 points: [point],
             });
 
-            console.log(`✅ Fichier ${file} indexé :`, res);
+            console.log(`✅ Fichier ${file} indexé avec succès`);
         } catch (err) {
             console.error(`❌ Erreur lors de l'indexation de ${file} :`, err?.response?.data || err.message);
         }
@@ -65,4 +91,4 @@ async function indexCorpus() {
     console.log('🏁 Indexation terminée.');
 }
 
-indexCorpus().then(() => console.log('✅ Indexation terminée avec succès.'));
+indexCorpus().then(() => console.log('✅ Indexation terminée avec succès.')).catch(console.error);
