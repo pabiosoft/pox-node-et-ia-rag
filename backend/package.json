@@ -11,16 +11,11 @@
   },
   "private": true,
   "dependencies": {
-    "@dqbd/tiktoken": "^1.0.21",
     "@qdrant/js-client-rest": "^1.14.1",
-    "axios": "^1.10.0",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "openai": "^5.9.0",
-    "pdf-parse": "^1.1.1",
-    "pdf2json": "^3.1.6",
-    "pdfjs-dist": "^5.3.93",
     "pug": "^3.0.3"
   },
   "devDependencies": {
