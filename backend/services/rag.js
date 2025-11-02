@@ -26,7 +26,12 @@ export class RAGService {
 
             // 2. Recherche vectorielle avec seuil adaptatif
             const threshold = vectorService.getAdaptiveThreshold(question);
-            const searchResults = await vectorService.search(vector, 3, threshold);
+            let searchResults = await vectorService.search(vector, 3, threshold);
+
+            // Fallback : si rien trouvé, relancer avec un seuil plus bas
+            if (searchResults.length === 0 && threshold > 0.7) {
+                searchResults = await vectorService.search(vector, 3, 0.7);
+            }
 
             if (searchResults.length === 0) {
                 return {
@@ -77,18 +82,33 @@ export class RAGService {
      * @returns {Promise<string>} Réponse générée
      */
     async generateAnswer(question, context) {
-        const prompt = `Tu es un assistant IA spécialisé dans la recherche documentaire.
-
-            Contexte disponible :
+        const prompt = `
+            Tu es DashLab, un assistant analytique expert en visualisation et en interprétation de données.
+            Tu aides l’utilisateur à comprendre, explorer et interpréter ses données, uniquement à partir du contexte fourni.
+            Si les informations sont incomplètes, tu restes engageant en proposant une piste de suivi ou une question de précision.
+            
+            Contexte pertinent (chaque bloc provient d’un document différent) :
             ${context}
-
-            Question : "${question}"
-
-            Instructions :
-            - Réponds uniquement en te basant sur le contexte fourni
-            - Si le contexte ne contient pas d'informations pertinentes, dis-le clairement
-            - Sois précis et factuel
-            - N'invente pas d'informations`;
+            
+            Règles de réponse :
+            1. Analyse le contexte pour extraire les éléments les plus pertinents liés à la question.
+            2. Si plusieurs extraits traitent du même sujet, fusionne-les en une synthèse fluide et cohérente.
+            3. Si le contexte évoque le sujet indirectement (valeurs, tendances, anomalies), formule un insight clair sans extrapoler.
+            4. Si aucune information exploitable n’est trouvée :
+               - Indique-le explicitement : "Données manquantes dans le contexte pour répondre à cette question."
+               - Ajoute une courte proposition ou une question pour aider l’utilisateur à préciser sa demande.
+                 Exemples :
+                   • "Souhaitez-vous que j’analyse une table ou une période spécifique ?"
+                   • "Pouvez-vous préciser la colonne ou le type d’indicateur recherché ?"
+                   • "Souhaitez-vous que je recherche dans un autre corpus ou fichier ?"
+            5. Utilise un ton professionnel mais conversationnel, comme un data-analyst qui accompagne son utilisateur.
+            6. Termine toujours ta réponse par une phrase d’ouverture ou une suggestion d’étape suivante.
+            
+            Question :
+            "${question}"
+            
+            Réponse :
+            `;
 
         const gptRes = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
@@ -98,6 +118,15 @@ export class RAGService {
 
         return gptRes.choices[0].message.content;
     }
+
+    // const gptRes = await openai.chat.completions.create({
+    //     model: 'gpt-4o-mini',
+    //     messages: [{ role: 'user', content: prompt }],
+    //     temperature: 0.25, // ton cohérent, léger rebond naturel
+    //     max_tokens: 500,
+    // });
+    //
+    // return gptRes.choices[0].message.content.trim();
 
     /**
      * Vérifie si la question est une salutation
@@ -125,7 +154,7 @@ export class RAGService {
      */
     formatSources(searchResults) {
         const uniqueSources = new Map();
-        
+
         searchResults.forEach(hit => {
             const key = `${hit.payload.title}-${hit.payload.author}`;
             if (!uniqueSources.has(key)) {
