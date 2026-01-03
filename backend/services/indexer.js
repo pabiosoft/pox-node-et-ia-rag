@@ -3,6 +3,10 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import XLSX from 'xlsx';
 import { qdrant, openai, COLLECTION_NAME } from '../config/database.js';
+// import {
+//     loadAndIndexAllPDFs
+// } from './pdfService.js';
+import { PDFService } from './pdfService.js';
 
 const CORPUS_DIR = path.resolve('./corpus');
 const EXCEL_DIR = path.join(CORPUS_DIR, 'excel');
@@ -263,6 +267,19 @@ class IndexerService {
         return documents;
     }
 
+    /**
+     * Charge et indexe tous les documents PDF
+     * @returns {Promise<Array>} Documents générés à partir des PDF
+     */
+    async loadPDFDocuments() {
+        try {
+            return await new PDFService().loadAndIndexAllPDFs();
+        } catch (error) {
+            console.error('❌ Erreur chargement PDF:', error.message);
+            return [];
+        }
+    }
+
     async loadExcelDocuments() {
         if (!fs.existsSync(EXCEL_DIR)) {
             return [];
@@ -399,10 +416,11 @@ class IndexerService {
     async reindexCorpus() {
         await this.ensureCollection({ purge: true });
 
-        console.log('📂 Lecture du corpus (JSON + Excel)...');
+        console.log('📂 Lecture du corpus (JSON + PDF + Excel)...');
 
         const documents = [
             ...(await this.loadJsonDocuments()),
+            ...(await this.loadPDFDocuments()),
             ...(await this.loadExcelDocuments()),
         ];
 

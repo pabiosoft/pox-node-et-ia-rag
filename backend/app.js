@@ -7,8 +7,11 @@ import dotenv from 'dotenv';
 
 // Services
 import { vectorService } from './services/vector.js';
+import { apiStorage } from './services/apiStorage.js';
 import chatRoutes from './routes/chat.js';
 import corpusRoutes from './routes/corpus.js';
+import pdfRoutes from './routes/pdf.js';
+import apiRoutes from './routes/apiRoutes.js';
 
 dotenv.config();
 
@@ -27,7 +30,7 @@ if (!process.env.OPENAI_API_KEY) {
 const app = express();
 
 const allowedOrigins = [
-    'http://localhost:3000',
+    'http://localhost:3000','http://localhost:8000',
 ];
 
 const dashlabPattern = /^https?:\/\/([a-z0-9-]+\.)*dashlab\.fr(?::\d+)?$/i;
@@ -58,6 +61,11 @@ async function checkConnections() {
 }
 checkConnections();
 
+// Initialiser le stockage API
+apiStorage.initialize().catch(err => {
+    console.error('❌ Erreur initialisation stockage API:', err);
+});
+
 // Middlewares
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -73,6 +81,8 @@ app.get('/', (_, res) => {
 // Routes API
 app.use('/', chatRoutes);
 app.use('/', corpusRoutes);
+app.use('/', pdfRoutes);
+app.use('/api', apiRoutes);
 
 // Démarrage du serveur
 app.listen(PORT, () => {
