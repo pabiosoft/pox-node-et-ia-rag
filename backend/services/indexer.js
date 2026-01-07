@@ -65,6 +65,28 @@ function extractTags(row, fallback = []) {
     return fallback;
 }
 
+function buildJsonDocumentFromFile(filePath, fileName) {
+    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const doc = JSON.parse(rawData);
+
+    if (!doc.text || typeof doc.text !== 'string' || !doc.text.trim()) {
+        const error = new Error(`Champ "text" manquant ou vide dans ${fileName}`);
+        error.statusCode = 400;
+        throw error;
+    }
+
+    return {
+        title: doc.title || 'Inconnu',
+        author: doc.author || DEFAULT_DOCUMENT_AUTHOR,
+        date: doc.date || 'Non précisée',
+        category: doc.category || 'Divers',
+        text: doc.text,
+        tags: Array.isArray(doc.tags) ? doc.tags : [],
+        source: fileName,
+        sourceFile: fileName,
+    };
+}
+
 function buildExcelDocument(row, context) {
     const textChunks = [];
 
@@ -239,24 +261,8 @@ class IndexerService {
             const filePath = path.join(JSON_DIR, file);
 
             try {
-                const rawData = fs.readFileSync(filePath, 'utf-8');
-                const doc = JSON.parse(rawData);
-
-                if (!doc.text || typeof doc.text !== 'string' || !doc.text.trim()) {
-                    console.warn(`⚠️ Skipping ${file} - champ "text" manquant ou vide.`);
-                    continue;
-                }
-
-                documents.push({
-                    title: doc.title || 'Inconnu',
-                    author: doc.author || DEFAULT_DOCUMENT_AUTHOR,
-                    date: doc.date || 'Non précisée',
-                    category: doc.category || 'Divers',
-                    text: doc.text,
-                    tags: Array.isArray(doc.tags) ? doc.tags : [],
-                    source: file,
-                    sourceFile: file,
-                });
+                const document = buildJsonDocumentFromFile(filePath, file);
+                documents.push(document);
             } catch (error) {
                 console.error(`❌ Erreur de lecture pour ${file}:`, error.message);
             }
@@ -355,6 +361,49 @@ class IndexerService {
         });
 
         return documents;
+    }
+
+    async indexJsonFile(fileName) {
+        const filePath = path.join(JSON_DIR, fileName);
+
+        if (!fs.existsSync(filePath)) {
+            const error = new Error('Fichier JSON introuvable dans corpus/json');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const document = buildJsonDocumentFromFile(filePath, fileName);
+
+        await this.ensureCollection({ purge: false });
+        await this.removeDocumentsBySourceFile(fileName);
+        await this.indexDocuments([document]);
+
+        return { indexed: 1 };
+    }
+
+    async indexPdfFile(fileName) {
+        const pdfService = new PDFService();
+
+        try {
+            const document = await pdfService.processSpecificPDF(fileName);
+            const payload = {
+                ...document,
+                tags: Array.isArray(document.tags) ? document.tags : [],
+                source: fileName,
+                sourceFile: fileName,
+            };
+
+            await this.ensureCollection({ purge: false });
+            await this.removeDocumentsBySourceFile(fileName);
+            await this.indexDocuments([payload]);
+
+            return { indexed: 1 };
+        } catch (error) {
+            if (!error.statusCode) {
+                error.statusCode = error.message?.includes('non trouvé') ? 404 : 500;
+            }
+            throw error;
+        }
     }
 
     async indexDocuments(documents) {
