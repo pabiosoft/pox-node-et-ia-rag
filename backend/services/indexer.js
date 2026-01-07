@@ -6,6 +6,7 @@ import { qdrant, openai, COLLECTION_NAME, DEFAULT_DOCUMENT_AUTHOR } from '../con
 import { PDFService } from './pdfService.js';
 
 const CORPUS_DIR = path.resolve('./corpus');
+const JSON_DIR = path.join(CORPUS_DIR, 'json');
 const EXCEL_DIR = path.join(CORPUS_DIR, 'excel');
 const EXCEL_SPEC_FILE = path.join(EXCEL_DIR, 'spec-owner.json');
 const SUPPORTED_EXCEL_EXTENSIONS = new Set(['.xlsx', '.xls']);
@@ -223,11 +224,11 @@ class IndexerService {
     }
 
     async listJsonFiles() {
-        if (!fs.existsSync(CORPUS_DIR)) {
+        if (!fs.existsSync(JSON_DIR)) {
             return [];
         }
 
-        return fs.readdirSync(CORPUS_DIR).filter(file => file.endsWith('.json'));
+        return fs.readdirSync(JSON_DIR).filter(file => file.endsWith('.json'));
     }
 
     async loadJsonDocuments() {
@@ -235,7 +236,7 @@ class IndexerService {
         const documents = [];
 
         for (const file of files) {
-            const filePath = path.join(CORPUS_DIR, file);
+            const filePath = path.join(JSON_DIR, file);
 
             try {
                 const rawData = fs.readFileSync(filePath, 'utf-8');
