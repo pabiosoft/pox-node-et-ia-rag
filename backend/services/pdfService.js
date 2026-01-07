@@ -9,6 +9,7 @@ import path from 'path';
 
 // Import spécifique pour Node.js (version legacy)
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { DEFAULT_DOCUMENT_AUTHOR } from '../config/database.js';
 
 const CORPUS_DIR = path.resolve('./corpus');
 const PDF_DIR = path.join(CORPUS_DIR, 'pdf');
@@ -104,7 +105,7 @@ export class PDFService {
 
             return {
                 title: `PDF: ${path.parse(fileName).name}`,
-                author: "saidou",
+                author: DEFAULT_DOCUMENT_AUTHOR,
                 date: date,
                 category: "PDF",
                 text: text

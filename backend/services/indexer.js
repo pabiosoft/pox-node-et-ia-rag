@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import XLSX from 'xlsx';
-import { qdrant, openai, COLLECTION_NAME } from '../config/database.js';
+import { qdrant, openai, COLLECTION_NAME, DEFAULT_DOCUMENT_AUTHOR } from '../config/database.js';
 import { PDFService } from './pdfService.js';
 
 const CORPUS_DIR = path.resolve('./corpus');
@@ -99,7 +99,7 @@ function buildExcelDocument(row, context) {
     }
 
     const title = pickValue(row, ['title', 'Title'], context.title);
-    const author = pickValue(row, ['author', 'Author'], context.author || 'Anonyme');
+    const author = pickValue(row, ['author', 'Author'], context.author || DEFAULT_DOCUMENT_AUTHOR);
     const date = pickValue(row, ['date', 'Date'], context.date || 'Non précisée');
     const category = pickValue(row, ['category', 'Category'], context.category || 'Divers');
     const tags = Array.from(new Set([
@@ -248,7 +248,7 @@ class IndexerService {
 
                 documents.push({
                     title: doc.title || 'Inconnu',
-                    author: doc.author || 'Anonyme',
+                    author: doc.author || DEFAULT_DOCUMENT_AUTHOR,
                     date: doc.date || 'Non précisée',
                     category: doc.category || 'Divers',
                     text: doc.text,
@@ -331,7 +331,7 @@ class IndexerService {
 
                 const context = {
                     title: baseTitle,
-                    author: resolved.author || 'Equipe dashlab',
+                    author: resolved.author || DEFAULT_DOCUMENT_AUTHOR,
                     date: resolved.date || fileDateIso,
                     category: resolved.category || sheetName,
                     tags: Array.from(new Set([
