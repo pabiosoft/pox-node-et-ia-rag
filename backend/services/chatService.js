@@ -3,7 +3,6 @@
  */
 
 import { apiExplorer } from './apiExplorer.js';
-import { apiStorage } from './apiStorage.js';
 import { ragService } from './ragService.js';
 
 class ChatService {
@@ -18,8 +17,8 @@ class ChatService {
     async handleMessage(message, userId = 'default') {
         try {
             // 1. Vérifier si nous sommes déjà dans un contexte d'exploration d'API
-            // Utiliser uniquement le stockage persistant (pas de contexte en mémoire)
-            let session = await apiStorage.getSession(userId);
+            // Utiliser uniquement un contexte en mémoire (pas de stockage persistant)
+            const session = this.apiContext.get(userId) || null;
             let inApiContext = false;
             let currentContext = null;
 
@@ -28,7 +27,7 @@ class ChatService {
                 inApiContext = true;
                 currentContext = {
                     apiUrl: session.apiUrl,
-                    explorationTime: new Date(session.startedAt)
+                    explorationTime: new Date(session.explorationTime || Date.now())
                 };
             }
 
@@ -38,7 +37,7 @@ class ChatService {
                 // Vérifier si l'utilisateur veut quitter le mode API
                 if (this.wantsToQuitApiMode(message)) {
                     // Supprimer la session du stockage
-                    await apiStorage.deleteSession(userId, currentContext.apiUrl);
+                    this.apiContext.delete(userId);
                     response = {
                         response: `👋 J'ai quitté le mode exploration API. Vous pouvez maintenant poser des questions normales ou explorer une autre API.`,
                         type: 'api',
@@ -67,9 +66,12 @@ class ChatService {
                         explorationTime: new Date()
                     };
                     
-                    // Créer une session dans le stockage pour persister le contexte
-                    await apiStorage.createOrUpdateSession(userId, apiUrl, {
-                        exploredEndpoints: response.data?.endpoints.map(e => e.path) || []
+                    // Conserver le contexte uniquement en mémoire tant que la session est active
+                    this.apiContext.set(userId, {
+                        apiUrl,
+                        explorationTime: response.currentContext?.explorationTime || new Date(),
+                        currentEndpoint: null,
+                        favoriteId: null
                     });
                 } else if (this.isSpecialCommand(message)) {
                     // 3. Vérifier les commandes spéciales même en mode normal
@@ -252,7 +254,7 @@ class ChatService {
      */
     async handleApiFollowup(message, userId) {
         // Récupérer la session depuis le stockage
-        const session = await apiStorage.getSession(userId);
+        const session = this.apiContext.get(userId);
         console.log(`[DEBUG] Session pour ${userId}:`, session); // Log de débogage
         if (!session) {
             return {
