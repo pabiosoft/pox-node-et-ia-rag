@@ -63,6 +63,7 @@ router.post('/corpus/upload', upload.single('file'), async (req, res) => {
     }
 
     try {
+        await corpusService.ensureReadable(req.file.path);
         const fileType = req.file.corpusType || corpusService.detectFileType(req.file.originalname);
         let summary = null;
 

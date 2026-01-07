@@ -72,6 +72,14 @@ class CorpusService {
             .filter(name => EXCEL_EXTENSIONS.has(path.extname(name).toLowerCase()))
             .sort((a, b) => a.localeCompare(b));
     }
+
+    async ensureReadable(filePath) {
+        try {
+            await fs.promises.chmod(filePath, 0o644);
+        } catch (error) {
+            console.warn(`⚠️ Impossible de mettre à jour les permissions de ${filePath}: ${error.message}`);
+        }
+    }
 }
 
 export const corpusService = new CorpusService();
