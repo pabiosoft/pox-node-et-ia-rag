@@ -12,6 +12,11 @@ RUN npm install -g nodemon
 # Copier les fichiers de dépendances AVANT l'installation
 COPY package*.json ./
 
+# Installer les dépendances principales
+# - axios : client HTTP pour les requêtes API (Serper, OpenAI) et scraping web
+# - cheerio : librairie jQuery-like pour parser et extraire le contenu HTML des pages web
+# RUN npm install axios cheerio --save
+
 # Installer les dépendances (nodemon sera installé avec les devDependencies)
 RUN npm install --include=dev && npm cache clean --force
 

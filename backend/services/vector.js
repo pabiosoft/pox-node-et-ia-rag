@@ -46,11 +46,12 @@ export class VectorService {
      * @returns {number} Seuil de pertinence
      */
     getAdaptiveThreshold(question) {
-        const wordCount = question.split(' ').length;
-        
-        if (wordCount <= 3) return 0.75;
-        if (wordCount <= 6) return 0.80;
-        return 0.85;
+        const wordCount = question.split(/\s+/).filter(Boolean).length;
+
+        if (wordCount <= 3) return 0.72; // questions très courtes → seuil bas
+        if (wordCount <= 6) return 0.77;
+        if (wordCount <= 12) return 0.80;
+        return 0.82; // cap pour éviter de rater des résultats légers
     }
 }
 
